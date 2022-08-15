@@ -6,16 +6,20 @@ import {
   useSetRecoilState,
   selector,
 } from "recoil";
-import { useState } from "react";
+import axios from 'axios'
+import React, { useState } from "react";
 
 function App() {
   return (
     <RecoilRoot>
       <div className="container-fluid mt-2">
-        <TodoFilter />
-        <TodoStats />
-        <ItemCreator />
-        <TodoList />
+        <React.Suspense fallback={<h1>Cargando</h1>}>
+          <UserData />
+          <TodoFilter />
+          <TodoStats />
+          <ItemCreator />
+          <TodoList />
+        </React.Suspense>
       </div>
     </RecoilRoot>
   );
@@ -66,6 +70,14 @@ const todoStatsSelector = selector({
     }
 
     return data
+  }
+})
+
+const userDataSelector = selector({
+  key: "userDataSelector",
+  get: async() => {
+    const response = await axios.get("http://localhost:3001/users/1");
+    return response.data
   }
 })
 
@@ -207,7 +219,7 @@ function TodoFilter() {
   return (
     <div className="row">
       <div className="col-sm-1">
-        <label for="listFilters">Filtro:</label>
+        <label>Filtro:</label>
       </div>
       <div className="col-sm-5">
         <select
@@ -234,6 +246,13 @@ function TodoStats(){
       <span>Tareas realizadas: {toDo} </span> <br/>
       <span>Progreso: {completedPercentage * 100}% </span>
     </div>
+  )
+}
+
+function UserData(){
+  const user = useRecoilValue(userDataSelector)
+  return (
+    <h1>{user.name}</h1>
   )
 }
 
