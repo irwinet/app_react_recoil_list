@@ -4,6 +4,7 @@ import {
   useRecoilState,
   useRecoilValue,
   useSetRecoilState,
+  selector,
 } from "recoil";
 import { useState } from "react";
 
@@ -12,6 +13,7 @@ function App() {
     <RecoilRoot>
       <div className="container-fluid mt-2">
         <TodoFilter />
+        <TodoStats />
         <ItemCreator />
         <TodoList />
       </div>
@@ -25,6 +27,47 @@ const todoListState = atom({
   key: "todoListState",
   default: [],
 });
+
+const todoFilterState = atom({
+  key: "todoFilterState",
+  default: "all",
+});
+
+const todoFilterSelector = selector({
+  key: "todoFilterSelector",
+  get: ({ get }) => {
+    const list = get(todoListState);
+    const filter = get(todoFilterState);
+
+    switch (filter) {
+      case "done":
+        return list.filter((item) => item.isCompleted);
+      case "notDone":
+        return list.filter((item) => !item.isCompleted);
+      default:
+        return list;
+    }
+  },
+});
+
+const todoStatsSelector = selector({
+  key: 'todoStatsSelector',
+  get: ({get}) => {
+    const list = get(todoListState)
+    const toDo = list.filter(item => item.isCompleted).length
+    const notTodo = list.filter(item => !item.isCompleted).length
+    const completedPercentage = (list.length === 0) ? 0 : (notTodo / list.length)
+
+    const data = {
+      total: list.length, 
+      toDo, 
+      notTodo, 
+      completedPercentage
+    }
+
+    return data
+  }
+})
 
 function ItemCreator() {
   const [text, setText] = useState("");
@@ -74,7 +117,8 @@ function ItemCreator() {
 // ];
 
 function TodoList() {
-  const todos = useRecoilValue(todoListState);
+  // const todos = useRecoilValue(todoListState);
+  const todos = useRecoilValue(todoFilterSelector);
   return (
     <div className="container-fluid mt-5">
       {todos.map((item) => (
@@ -155,13 +199,23 @@ function TodoItem({ id, text, isCompleted }) {
 }
 
 function TodoFilter() {
+  const [filterState, setFilterState] = useRecoilState(todoFilterState);
+  const onSelectedItem = (event) => {
+    const { value } = event.target;
+    setFilterState(value);
+  };
   return (
     <div className="row">
       <div className="col-sm-1">
         <label for="listFilters">Filtro:</label>
       </div>
-      <div className="col-sm-5">        
-        <select className="form-select" id="listFilters">
+      <div className="col-sm-5">
+        <select
+          className="form-select"
+          id="listFilters"
+          value={filterState}
+          onChange={onSelectedItem}
+        >
           <option value="all">Todos</option>
           <option value="done">Realizados</option>
           <option value="notDone">No Realizados</option>
@@ -169,6 +223,18 @@ function TodoFilter() {
       </div>
     </div>
   );
+}
+
+function TodoStats(){
+  const { total, toDo, notTodo, completedPercentage } = useRecoilValue(todoStatsSelector)
+  return (
+    <div>
+      <span>Tareas totales: {total} </span> <br/>
+      <span>Tareas por hacer: {notTodo} </span> <br/>
+      <span>Tareas realizadas: {toDo} </span> <br/>
+      <span>Progreso: {completedPercentage * 100}% </span>
+    </div>
+  )
 }
 
 export default App;
